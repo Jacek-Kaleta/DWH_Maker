@@ -128,7 +128,6 @@ JOINT_COLUMNS AS
 			1 LEVEL_2,
 			1 LEVEL_4
 		FROM DUAL
-		UNION ALL
 		*/
 	)
 ),
