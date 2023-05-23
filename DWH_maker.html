@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="DWH_maker.css"> 
+	<title>DATAWARE HOUSE SQL QUERY CREATOR</title>
+</head>
+<body>
+	<script src="tabjs.js"></script>
+	
+	<label for="file-input" class="custom-file-upload">Load Definition / Project</label> 
+	<input class="inp" id="file-input" type="file"/>
+	<button class="btn" onclick="createSQL()">Create SQL</button>
+	<button class="btn" onclick="saveState()">Save Project</button>
+	<input class="inp" type="text" id="searchInput" placeholder="Text to search" size="20">
+	<button class="btn" onclick="search()">Search</button>
+	<div id="sqltree"></div>
+	
+	<script>
+		const fileInput = document.getElementById('file-input');
+
+		fileInput.addEventListener('change', function(event) 
+		{
+			const selectedFile = event.target.files[0];
+			loadFile(selectedFile);
+		});
+		
+		function search() {
+			var searchText = document.getElementById('searchInput').value;
+			var elements = document.getElementsByTagName('*');
+			for (var i = 0; i < elements.length; i++) {
+				var element = elements[i];
+				if (getDirectInnerText(element).includes(searchText.toUpperCase()) && searchText.trim().length >0) 
+				{
+					element.classList.add('highlight');
+				} else 
+				{
+					element.classList.remove('highlight');
+				}
+			}
+		}
+		
+		function getDirectInnerText(element) 
+		{
+			let childNodes = element.childNodes;
+			result = '';
+
+			for (var i = 0; i < childNodes.length; i++) 
+			{
+				if(childNodes[i].nodeType == 3) 
+				{
+					result += childNodes[i].data;
+				}
+			}
+			return result;
+		}
+
+		function loadFile(file) {
+			let reader = new FileReader();
+			reader.onload = function(event) 
+			{
+				let fileContent = event.target.result;
+				if (file.name.split('.').pop().toLowerCase() =='txt')
+					loadtoTree(fileContent);
+				else
+				if (file.name.split('.').pop().toLowerCase() =='html')
+					loadSession(fileContent);
+			};
+			reader.readAsText(file);
+		}
+
+		function loadSession(fileContent)
+		{
+			let treeContainer = document.getElementById("sqltree");
+			treeContainer.innerHTML = fileContent;
+			treeContainer.addEventListener("click", toggleCollapse);
+			treeContainer.addEventListener("click", highlightSelected);
+			setCheckBoxHandlers();
+		}
+		
+		function loadtoTree(fileContent)
+		{
+			let json = tab2json(fileContent,{value:"name", subnodes:"children"});
+			createTree(json);
+		}
+
+		function toggleCollapse(event) {
+			var target = event.target;
+
+			if (target.parentNode.classList.contains("tree-node")) 
+			{
+				var childUl = target.parentNode.nextElementSibling;
+				if (childUl) {
+					childUl.classList.toggle("collapsed");
+				}
+			}
+		}
+
+		function highlightSelected(event) {
+			let target = event.target;
+			if (target.classList.contains("tree-node")) {
+			let selectedNodes = document.getElementsByClassName("selected");
+			for (var i = 0; i < selectedNodes.length; i++) {
+			  selectedNodes[i].classList.remove("selected");
+			}
+			target.classList.add("selected");
+		  }
+		}
+
+		function createTree(json)
+		{
+			let treeContainer = document.getElementById("sqltree");
+			
+			function createTreeView(data, parentElement) 
+			{
+				var ul = document.createElement("ul");
+				for (var i = 0; i < data.length; i++)
+				if(data[i].name.length >0)
+				{
+					var li = document.createElement("li");
+					var node = document.createElement("span");
+					var checkbox = document.createElement("input");
+					checkbox.type = "checkbox";
+
+					node.classList.add("tree-node");
+					
+					if (data[i].name[0]!='!')
+					{
+						node.innerHTML = joinSpan(data[i].name);
+						if (data[i].name.substring(0,3)=='-- ')
+						{
+							let name = data[i].name.substring(3).split(",")[0];
+							checkbox.id= name ;
+						}
+						li.appendChild(checkbox);
+						li.appendChild(node);
+					}
+					else
+					{
+						node.innerHTML = joinSpan(data[i].name.substring(1));
+						li.appendChild(node);
+					}
+					ul.appendChild(li);
+					if (data[i].children != undefined)
+					if (data[i].children.length > 0) {
+					  li.appendChild(createTreeView(data[i].children, li));
+					}
+				}
+
+				parentElement.appendChild(ul);
+				return ul;
+
+				function polaczZeSpanem(ciagZnakow) 
+				{
+					return  ciagZnakow.split('.').map(
+						function(element, n) 
+						{
+							return '<span class="c'+n+'">' + polaczSpacjeZeSpanem(element) + '</span>';
+						}).join('.');
+				}
+				
+				function polaczSpacjeZeSpanem(ciagZnakow) 
+				{
+					return  ciagZnakow.split(' ').map(
+						function(element, n) 
+						{
+							return '<span class="s'+n+'">' + element + '</span>';
+						}).join(' ');
+				}
+				
+				function joinSpan(c)
+				{
+					let i = 0;
+					let k = 0;
+					let s = "";
+					while (i< c.length)
+					{
+						while (i< c.length && (c[i]==' ' || c[i]=='.')) 
+						{
+							s+=c[i]; i++;
+						}
+						k++;
+						s+='<span class="c'+k+'">' ;
+						while (i< c.length && !(c[i]==' ' || c[i]=='.')) 
+						{
+							s+=c[i]; i++;
+						}
+						s+='</span>' ;
+					}
+					return s;
+				}
+			}
+
+			treeContainer.innerHTML="";
+			treeContainer.appendChild(createTreeView(json, treeContainer));
+			treeContainer.addEventListener("click", toggleCollapse);
+			treeContainer.addEventListener("click", highlightSelected);
+			setCheckBoxHandlers();
+		}
+		
+		function setCheckBoxHandlers()
+		{
+			const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+			checkboxes.forEach(function(checkbox) 
+			{
+				checkbox.addEventListener('change', function() 
+				{
+					if(this.id)
+					{
+						if (this.checked)
+						{
+							console.log('Checkbox został zaznaczony');
+							const checkboxes = document.querySelectorAll('input[type="checkbox"]#'+this.id);
+							checkboxes.forEach(checkbox => {
+								checkbox.checked = true; 
+							});
+						}
+						else
+						{
+							console.log('Checkbox został odznaczony');
+							const checkboxes = document.querySelectorAll('input[type="checkbox"]#'+this.id);
+							checkboxes.forEach(checkbox => {
+								checkbox.checked = false; 
+							});
+						}
+					}
+					else
+					{
+						let e = this.parentNode.parentNode.parentElement.querySelector('input');
+						e.checked=true;
+						const checkboxes = document.querySelectorAll('input[type="checkbox"]#'+e.id);
+							checkboxes.forEach(checkbox => {
+								checkbox.checked = true; 
+							});
+					}
+				}
+				);
+			});
+		}
+
+		function createSQL()
+		{
+			let e = document.getElementById('sqltree');
+			let sqltext ="" ;
+			
+			processUL(e.querySelector('UL').childNodes,'');
+			
+			function processUL(nodes, t)
+			{
+				for(let i=0;i<nodes.length;i++)
+				{
+					if (nodes[i].childNodes.length >= 2)
+					{
+						if (nodes[i].childNodes[0].tagName =='INPUT')
+						{
+							if (nodes[i].childNodes[0].checked === true )
+							{
+								sqltext += t+nodes[i].childNodes[1].innerText+"\r\n";
+								if (nodes[i].childNodes.length == 3)
+									if (nodes[i].childNodes[2].tagName == 'UL')
+										processUL(nodes[i].childNodes[2].childNodes, t+'\t');
+							}
+						}
+						else
+						{
+							sqltext += t+nodes[i].childNodes[0].innerText+"\r\n";
+							if (nodes[i].childNodes.length == 2)
+								if (nodes[i].childNodes[1].tagName == 'UL')
+									processUL(nodes[i].childNodes[1].childNodes, t+'\t');
+						}
+					}
+					else
+						sqltext += t+nodes[i].childNodes[0].innerText+"\r\n";
+				}
+			}
+			
+			saveSQLToFile(sqltext);
+			return sqltext ;
+			
+			function saveSQLToFile(text) 
+			{
+				let file = new Blob([text], { type: 'text/plain' });
+				{
+					let a = document.createElement('a');
+					a.href = URL.createObjectURL(file);
+					a.download = 'query.sql';
+					a.click();
+				}
+			}
+		}
+	
+		function saveState()
+		{
+			function saveInitState()
+			{
+				const element = document.getElementById("sqltree");
+				if (element) 
+				{
+					const inputElements = element.querySelectorAll('input');
+					inputElements.forEach((inputElement) => 
+					{
+						if (inputElement.checked )
+							inputElement.outerHTML ='<input type="checkbox" checked="true">';
+						else
+							inputElement.outerHTML ='<input type="checkbox">';
+					});
+					saveToFile(element.innerHTML);
+				}
+			
+			
+				function saveToFile(text) 
+				{
+					let file = new Blob([text], { type: 'text/plain' });
+					{
+						let a = document.createElement('a');
+						a.href = URL.createObjectURL(file);
+						a.download = 'state.html';
+						a.click();
+					}
+				}
+			}
+			saveInitState();
+			setCheckBoxHandlers();
+		}
+	</script>
+</body>
+</html>
