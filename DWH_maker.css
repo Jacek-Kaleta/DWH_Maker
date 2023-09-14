@@ -76,3 +76,7 @@ white-space: nowrap;
 .c2 {color:darkblue;}
 .c3 {color:red;}
 .c4 {color:darkgreen;}
+
+.c-box  {
+  border-radius: 999px;
+}

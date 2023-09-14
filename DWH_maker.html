@@ -13,18 +13,53 @@
 	<input class="inp" id="file-input" type="file"/>
 	<button class="btn" onclick="createSQL()">Create SQL</button>
 	<button class="btn" onclick="saveState()">Save Project</button>
+	<!--
 	<input class="inp" type="text" id="searchInput" placeholder="Text to search" size="20">
 	<button class="btn" onclick="search()">Search</button>
+	-->
 	<div id="sqltree"></div>
 	
 	<script>
 		const fileInput = document.getElementById('file-input');
+		
+		var htmlDocument = document.documentElement;
+
+		var altkey = false;
+		var ctrlkey = false;
+		function handleKeyDown(event) {
+			if (event.key == "Alt")altkey = true;
+			if (event.key == "Control")ctrlkey = true;
+			if (event.key == "-") collapseAll();
+		}
+
+		function handleKeyUp(event) {
+			if (event.key =="Alt")altkey = false;
+			if (event.key == "Control")ctrlkey = false;
+		}
+
+		htmlDocument.addEventListener("keydown", handleKeyDown);
+		htmlDocument.addEventListener("keyup", handleKeyUp);
 
 		fileInput.addEventListener('change', function(event) 
 		{
 			const selectedFile = event.target.files[0];
 			loadFile(selectedFile);
 		});
+		
+		function collapseAll()
+		{
+			const elem = document.querySelectorAll('span');
+			elem.forEach(function(e) 
+			{
+				if (e.classList.contains("tree-node")) 
+				{
+					var childUl = e.nextElementSibling;
+					if (childUl) {
+						childUl.classList.toggle("collapsed");
+					}
+				}
+			})
+		};
 		
 		function search() {
 			var searchText = document.getElementById('searchInput').value;
@@ -108,6 +143,12 @@
 		  }
 		}
 
+		function poczNIECYFRY(tekst) {
+		const wynik = tekst.match(/\d/);
+		if (wynik) return tekst.substring(0, wynik.index)
+		return undefined;
+		}
+
 		function createTree(json)
 		{
 			let treeContainer = document.getElementById("sqltree");
@@ -133,6 +174,7 @@
 							let name = data[i].name.substring(3).split(",")[0];
 							checkbox.id= name ;
 						}
+						checkbox.dataset.line = data[i].name ;
 						li.appendChild(checkbox);
 						li.appendChild(node);
 					}
@@ -210,7 +252,7 @@
 					{
 						if (this.checked)
 						{
-							console.log('Checkbox został zaznaczony');
+							//console.log('Checkbox został zaznaczony');
 							const checkboxes = document.querySelectorAll('input[type="checkbox"]#'+this.id);
 							checkboxes.forEach(checkbox => {
 								checkbox.checked = true; 
@@ -218,21 +260,54 @@
 						}
 						else
 						{
-							console.log('Checkbox został odznaczony');
+							//console.log('Checkbox został odznaczony');
 							const checkboxes = document.querySelectorAll('input[type="checkbox"]#'+this.id);
 							checkboxes.forEach(checkbox => {
 								checkbox.checked = false; 
 							});
-						}
+						} ;
 					}
 					else
 					{
 						let e = this.parentNode.parentNode.parentElement.querySelector('input');
-						e.checked=true;
-						const checkboxes = document.querySelectorAll('input[type="checkbox"]#'+e.id);
-							checkboxes.forEach(checkbox => {
-								checkbox.checked = true; 
-							});
+						
+						if(e.id.length > 0)
+						{
+							e.checked=true;
+							const checkboxes = document.querySelectorAll('input[type="checkbox"]#'+e.id);
+								checkboxes.forEach(checkbox => {
+									checkbox.checked = true; 
+								});
+						}
+						
+						if (altkey)
+						{
+							const mstr = poczNIECYFRY(checkbox.dataset.line);
+							if (mstr != undefined)
+							{
+								const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+								checkboxes.forEach(checkbox => {
+									if (checkbox.dataset.line.substring(0, mstr.length) == mstr)
+									checkbox.checked = true; 
+								});
+								return ;
+							}
+						} ;
+						
+						if (ctrlkey)
+						{
+							const mstr = poczNIECYFRY(checkbox.dataset.line);
+							if (mstr != undefined)
+							{
+								const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+								checkboxes.forEach(checkbox => {
+									if (checkbox.dataset.line.substring(0, mstr.length) == mstr)
+									checkbox.checked = false; 
+								});
+								
+								return ;
+							}
+						};
 					}
 				}
 				);
@@ -300,10 +375,13 @@
 					const inputElements = element.querySelectorAll('input');
 					inputElements.forEach((inputElement) => 
 					{
-						if (inputElement.checked )
-							inputElement.outerHTML ='<input type="checkbox" checked="true">';
-						else
-							inputElement.outerHTML ='<input type="checkbox">';
+						let str = '<input type="checkbox"';
+						if (inputElement.id != undefined ) str +=' id="'+inputElement.id+'"';
+						if (inputElement.checked ) str +=' checked="true"';
+						if (inputElement.dataset.line != undefined)
+							str+=' data-line="'+inputElement.dataset.line+'"';
+						str+='>' ;
+						inputElement.outerHTML = str;
 					});
 					saveToFile(element.innerHTML);
 				}
