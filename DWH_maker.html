@@ -9,10 +9,12 @@
 <body>
 	<script src="tabjs.js"></script>
 	
-	<label for="file-input" class="custom-file-upload">Load Definition / Project</label> 
+	<label for="file-input" class="custom-file-upload">Load Definition / Project / Fields</label> 
 	<input class="inp" id="file-input" type="file"/>
 	<button class="btn" onclick="createSQL()">Create SQL</button>
 	<button class="btn" onclick="saveState()">Save Project</button>
+	<input class="inp" type="text" id="fields" placeholder="Paste fields" size="30" onpaste="pasted(this)">
+	<a href="https://github.com/Jacek-Kaleta/DataWareHouseSqlGenerator" target="_blank">on GitHub</a>
 	<!--
 	<input class="inp" type="text" id="searchInput" placeholder="Text to search" size="20">
 	<button class="btn" onclick="search()">Search</button>
@@ -26,6 +28,7 @@
 
 		var altkey = false;
 		var ctrlkey = false;
+		let fields =  undefined ;
 		function handleKeyDown(event) {
 			if (event.key == "Alt")altkey = true;
 			if (event.key == "Control")ctrlkey = true;
@@ -61,7 +64,7 @@
 			})
 		};
 		
-		function search() {
+		/*function search() {
 			var searchText = document.getElementById('searchInput').value;
 			var elements = document.getElementsByTagName('*');
 			for (var i = 0; i < elements.length; i++) {
@@ -74,7 +77,7 @@
 					element.classList.remove('highlight');
 				}
 			}
-		}
+		}*/
 		
 		function getDirectInnerText(element) 
 		{
@@ -97,7 +100,10 @@
 			{
 				let fileContent = event.target.result;
 				if (file.name.split('.').pop().toLowerCase() =='txt')
-					loadtoTree(fileContent);
+					loadTree(fileContent);
+				else
+				if (file.name.split('.').pop().toLowerCase() =='csv')
+					loadFields(fileContent);
 				else
 				if (file.name.split('.').pop().toLowerCase() =='html')
 					loadSession(fileContent);
@@ -114,7 +120,7 @@
 			setCheckBoxHandlers();
 		}
 		
-		function loadtoTree(fileContent)
+		function loadTree(fileContent)
 		{
 			let json = tab2json(fileContent,{value:"name", subnodes:"children"});
 			createTree(json);
@@ -152,8 +158,9 @@
 		function createTree(json)
 		{
 			let treeContainer = document.getElementById("sqltree");
+			let db = undefined ;
 			
-			function createTreeView(data, parentElement) 
+			function createTreeView(data, parentElement, dbname) 
 			{
 				var ul = document.createElement("ul");
 				for (var i = 0; i < data.length; i++)
@@ -161,6 +168,7 @@
 				{
 					var li = document.createElement("li");
 					var node = document.createElement("span");
+					var db ;
 					var checkbox = document.createElement("input");
 					checkbox.type = "checkbox";
 
@@ -172,7 +180,20 @@
 						if (data[i].name.substring(0,3)=='-- ')
 						{
 							let name = data[i].name.substring(3).split(",")[0];
-							checkbox.id= name ;
+							if (data[i].name.substring(3).split(",")[1] != undefined)
+							{
+								db = data[i].name.substring(3).split(",")[1].trim();
+								checkbox.dataset.db = db;
+							}
+							//checkbox.id= name ;
+							checkbox.dataset.ident = name;
+						} else
+						{
+							let name = data[i].name.split(".")[0];
+							//checkbox.id= name ;
+							checkbox.dataset.name = name;
+							if (data[i].name.split(".").length == 2)
+								checkbox.dataset.field = dbname+"."+data[i].name.split(".")[1].replace(",","");
 						}
 						checkbox.dataset.line = data[i].name ;
 						li.appendChild(checkbox);
@@ -186,7 +207,7 @@
 					ul.appendChild(li);
 					if (data[i].children != undefined)
 					if (data[i].children.length > 0) {
-					  li.appendChild(createTreeView(data[i].children, li));
+					  li.appendChild(createTreeView(data[i].children, li, db));
 					}
 				}
 
@@ -248,70 +269,143 @@
 			{
 				checkbox.addEventListener('change', function() 
 				{
-					if(this.id)
+					const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+					if(this.dataset.name)
+					if(!ctrlkey)
 					{
 						if (this.checked)
 						{
-							//console.log('Checkbox został zaznaczony');
-							const checkboxes = document.querySelectorAll('input[type="checkbox"]#'+this.id);
 							checkboxes.forEach(checkbox => {
+								if (checkbox.dataset.ident == this.dataset.name)
 								checkbox.checked = true; 
 							});
 						}
 						else
 						{
-							//console.log('Checkbox został odznaczony');
-							const checkboxes = document.querySelectorAll('input[type="checkbox"]#'+this.id);
 							checkboxes.forEach(checkbox => {
-								checkbox.checked = false; 
+								if (checkbox.dataset.ident == this.dataset.name)
+									checkbox.checked = false; 
 							});
 						} ;
 					}
-					else
+					
+					if(this.dataset.ident)
 					{
-						let e = this.parentNode.parentNode.parentElement.querySelector('input');
-						
-						if(e.id.length > 0)
+						if (this.checked)
 						{
-							e.checked=true;
-							const checkboxes = document.querySelectorAll('input[type="checkbox"]#'+e.id);
-								checkboxes.forEach(checkbox => {
-									checkbox.checked = true; 
-								});
+							checkboxes.forEach(checkbox => {
+								if (checkbox.dataset.ident == this.dataset.ident)
+								checkbox.checked = true; 
+							});
 						}
-						
-						if (altkey)
+						else
 						{
-							const mstr = poczNIECYFRY(checkbox.dataset.line);
-							if (mstr != undefined)
-							{
-								const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-								checkboxes.forEach(checkbox => {
-									if (checkbox.dataset.line.substring(0, mstr.length) == mstr)
-									checkbox.checked = true; 
-								});
-								return ;
-							}
-						} ;
-						
-						if (ctrlkey)
-						{
-							const mstr = poczNIECYFRY(checkbox.dataset.line);
-							if (mstr != undefined)
-							{
-								const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-								checkboxes.forEach(checkbox => {
-									if (checkbox.dataset.line.substring(0, mstr.length) == mstr)
+							checkboxes.forEach(checkbox => {
+								if (checkbox.dataset.ident == this.dataset.ident)
 									checkbox.checked = false; 
-								});
-								
-								return ;
-							}
-						};
+							});
+							checkboxes.forEach(checkbox => {
+								if (checkbox.dataset.name == this.dataset.ident)
+									checkbox.checked = false; 
+							});
+						} ;
+					}
+					
+					if (altkey)
+					{
+						const mstr = poczNIECYFRY(checkbox.dataset.line);
+						if (mstr != undefined)
+						{
+							checkboxes.forEach(checkbox => {
+								if (poczNIECYFRY(checkbox.dataset.line) == mstr)
+								checkbox.checked = true; 
+							});
+						}
+						checkboxes.forEach(checkbox => {
+							if (checkbox.dataset.ident == this.dataset.name)
+								checkbox.checked = true; 
+						});
+					} ;
+						
+					if (ctrlkey)
+					{
+						const mstr = poczNIECYFRY(checkbox.dataset.line);
+						if (mstr != undefined)
+						{
+							checkboxes.forEach(checkbox => {
+								if (poczNIECYFRY(checkbox.dataset.line) == mstr)
+								checkbox.checked = false; 
+							});
+						}
+					};
+				})
+			});
+		}
+		
+		
+		function pasted(element) {
+			setTimeout(function(){
+			selectFields(element.value);
+			}, 0);
+		}
+
+		function loadFields(fileContent)
+		{
+			selectFields(fileContent.replace(/\r/g,'').replace(/\n/g," "));
+		}
+
+		function selectFields(value)
+		{
+			const paste = document.getElementById('fields');
+			fields = value.replace(/\t/g, '.')
+			fields = '#'+fields.replace(/ /g, '#')+'#';
+			let fn = fields.length ;
+
+			const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+			let aliases =[]; 
+			checkboxes.forEach(function(checkbox) 
+			{
+				checkbox.checked = false ;
+			});
+			let n = 0;
+			let found =  undefined ;
+			checkboxes.forEach(function(checkbox) 
+			{
+				if (checkbox.dataset.field != undefined)
+				{
+					if (fields.indexOf('#'+checkbox.dataset.field+'#')>=0)
+					{
+						fields = fields.replace('#'+checkbox.dataset.field+'#','#');
+						checkbox.checked = true ;
+						if (aliases.indexOf(checkbox.dataset.name) <0)
+						{
+							aliases.push(checkbox.dataset.name);
+							if (found==undefined) found =checkbox.dataset.field;
+							else found+="\r\n"+checkbox.dataset.field;
+							n++;
+						}
 					}
 				}
-				);
+			})
+			
+			console.log('Found:');
+			console.log(found);
+			console.log('');
+			fields= fields.replace(/#/g,"\r\n");
+			console.log('Not Found:');
+			console.log(fields);
+			console.log('');
+			fields= fields.split("\r\n");
+			
+			aliases.forEach(function(value) 
+			{
+				checkboxes.forEach(checkbox => {
+				if (checkbox.dataset.ident == value)
+						checkbox.checked = true; 
+				});
 			});
+			
+			paste.value="("+fn+','+n+','+fields.length+')';
 		}
 
 		function createSQL()
@@ -378,6 +472,15 @@
 						let str = '<input type="checkbox"';
 						if (inputElement.id != undefined ) str +=' id="'+inputElement.id+'"';
 						if (inputElement.checked ) str +=' checked="true"';
+						
+						if (inputElement.dataset.db != undefined)
+							str+=' data-db="'+inputElement.dataset.db+'"';
+						if (inputElement.dataset.name != undefined)
+							str+=' data-name="'+inputElement.dataset.name+'"';
+						if (inputElement.dataset.field != undefined)
+							str+=' data-field="'+inputElement.dataset.field+'"';
+						if (inputElement.dataset.ident != undefined)
+							str+=' data-ident="'+inputElement.dataset.ident+'"';
 						if (inputElement.dataset.line != undefined)
 							str+=' data-line="'+inputElement.dataset.line+'"';
 						str+='>' ;
