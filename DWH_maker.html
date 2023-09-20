@@ -13,8 +13,11 @@
 	<input class="inp" id="file-input" type="file"/>
 	<button class="btn" onclick="createSQL()">Create SQL</button>
 	<button class="btn" onclick="saveState()">Save Project</button>
-	<input class="inp" type="text" id="fields" placeholder="Paste fields" size="30" onpaste="pasted(this)">
-	<a href="https://github.com/Jacek-Kaleta/DataWareHouseSqlGenerator" target="_blank">on GitHub</a>
+	<input class="inp" type="text" id="fields" placeholder="Paste fields" size="20" onpaste="pasted(this)">
+	
+	<a href="https://github.com/Jacek-Kaleta/DWH_Maker" target="_blank">
+	on GitHub
+	</a>
 	<!--
 	<input class="inp" type="text" id="searchInput" placeholder="Text to search" size="20">
 	<button class="btn" onclick="search()">Search</button>
@@ -377,12 +380,12 @@
 					{
 						fields = fields.replace('#'+checkbox.dataset.field+'#','#');
 						checkbox.checked = true ;
+						if (found==undefined) found =checkbox.dataset.field;
+						else found+="\r\n"+checkbox.dataset.field;
+						n++;
 						if (aliases.indexOf(checkbox.dataset.name) <0)
 						{
 							aliases.push(checkbox.dataset.name);
-							if (found==undefined) found =checkbox.dataset.field;
-							else found+="\r\n"+checkbox.dataset.field;
-							n++;
 						}
 					}
 				}
@@ -392,10 +395,13 @@
 			console.log(found);
 			console.log('');
 			fields= fields.replace(/#/g,"\r\n");
-			console.log('Not Found:');
-			console.log(fields);
-			console.log('');
-			fields= fields.split("\r\n");
+			fields = fields.replace(/\r\n+$/, '');
+			if (fields.length >0)
+			{
+				console.log('Not Found:');
+				console.log('');
+				fields= fields.split("\r\n");
+			} fields = [];
 			
 			aliases.forEach(function(value) 
 			{
