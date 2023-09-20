@@ -1,6 +1,6 @@
 # DATA WAREHOUSE SQL GENERATOR
 
-Run form https://dwhmaker.pages.dev/DWH_maker
+Run from https://dwhmaker.pages.dev/DWH_maker
 
 You can:
 - load the script definition from the ".txt" file.
