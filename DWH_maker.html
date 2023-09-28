@@ -15,7 +15,7 @@
 	<button class="btn" onclick="saveState()">Save Project</button>
 	<input class="inp" type="text" id="fields" placeholder="Paste fields" size="20" onpaste="pasted(this)">
 	
-	<a href="https://github.com/Jacek-Kaleta/DWH_Maker" target="_blank">
+	<a href="https://github.com/Jacek-Kaleta/DWH_maker" target="_blank">
 	on GitHub
 	</a>
 	<!--
@@ -36,6 +36,7 @@
 			if (event.key == "Alt")altkey = true;
 			if (event.key == "Control")ctrlkey = true;
 			if (event.key == "-") collapseAll();
+			if (event.key == "#") uncheckall();
 		}
 
 		function handleKeyUp(event) {
@@ -51,6 +52,14 @@
 			const selectedFile = event.target.files[0];
 			loadFile(selectedFile);
 		});
+		
+		function uncheckall()
+		{
+			const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+			checkboxes.forEach(checkbox => {
+				checkbox.checked = false
+			});
+		}
 		
 		function collapseAll()
 		{
@@ -161,6 +170,7 @@
 		function createTree(json)
 		{
 			let treeContainer = document.getElementById("sqltree");
+			setObserver(treeContainer);
 			let db = undefined ;
 			
 			function createTreeView(data, parentElement, dbname) 
@@ -186,7 +196,10 @@
 							if (data[i].name.substring(3).split(",")[1] != undefined)
 							{
 								db = data[i].name.substring(3).split(",")[1].trim();
+								if (db.indexOf('.')>=0)
 								checkbox.dataset.db = db;
+								else
+								checkbox.dataset.exname = db;
 							}
 							//checkbox.id= name ;
 							checkbox.dataset.ident = name;
@@ -265,6 +278,17 @@
 			setCheckBoxHandlers();
 		}
 		
+		function setObserver(targetNode)
+		{
+			
+			const observer = new MutationObserver(function(mutationsList, observer) {
+				console.log('tick');
+				setCheckBoxHandlers();
+			});
+			const config = { childList: true, subtree: true };
+			observer.observe(targetNode, config);
+		}
+		
 		function setCheckBoxHandlers()
 		{
 			const checkboxes = document.querySelectorAll('input[type="checkbox"]');
@@ -278,6 +302,7 @@
 					{
 						if (this.checked)
 						{
+							console.log('check on with ident = ' +this.dataset.name);
 							checkboxes.forEach(checkbox => {
 								if (checkbox.dataset.ident == this.dataset.name)
 								checkbox.checked = true; 
@@ -296,9 +321,19 @@
 					{
 						if (this.checked)
 						{
+							//console.log(this.dataset.ident);
+							console.log('switch on with ident = ' +this.dataset.ident);
 							checkboxes.forEach(checkbox => {
 								if (checkbox.dataset.ident == this.dataset.ident)
 								checkbox.checked = true; 
+							});
+							checkboxes.forEach(checkbox => {
+								if (checkbox.dataset.exname != undefined)
+								if (('|'+checkbox.dataset.exname+'|').indexOf('|'+this.dataset.ident+'|') >=0)
+								{
+									checkbox.checked = true; 
+									console.log('checked on '+checkbox.dataset.exname);
+								}
 							});
 						}
 						else
