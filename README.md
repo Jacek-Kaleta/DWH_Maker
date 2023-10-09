@@ -1,4 +1,4 @@
-# DATA WAREHOUSE SQL GENERATOR
+# SQL GENERATOR
 
 Run from https://dwhmaker.pages.dev/DWH_maker
 
