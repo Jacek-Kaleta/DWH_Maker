@@ -1,4 +1,4 @@
-# SQL GENERATOR
+# SQL Maker
 
 Run from https://sqlmaker.pages.dev/sqlmaker
 
