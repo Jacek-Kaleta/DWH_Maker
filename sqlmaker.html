@@ -9,14 +9,15 @@
 <body>
 	<script src="tabjs.js"></script>
 	<div id="message">No message</div>
-	<label for="file-input" class="custom-file-upload">Load Definition (TXT) / Project (HTML) / Fields (CSV)</label> 
+	<label for="file-input" class="custom-file-upload">Load Definition (TXT) / Fields (CSV)</label> 
 	<input class="inp" id="file-input" type="file"/>
 	<button class="btn" onclick="createSQL()">Create (SQL)</button>
-	<button class="btn" onclick="saveState()">Save Project (HTML)</button>
-	<button id="sbtn" class="btn" onclick="saveCSV()">Save (CSV)</button>
-	<!-- <input class="inp" type="text" id="fields" placeholder="Paste fields" size="20" onpaste="pasted(this)"> -->
+	<button class="btn" onclick="saveCSV()">Save (CSV)</button>
+	<button id="sbtn" class="btn" onclick="openInputFields()">Paste Fields</button>
+	<input class="inp" type="text" id="searchInput" placeholder="search" size="15" 
+	oninput="search();"> 
 	
-	<a href="https://github.com/Jacek-Kaleta/DWH_maker" target="_blank">
+	<a href="https://github.com/Jacek-Kaleta/sqlmaker" target="_blank">
 	<svg xmlns="http://www.w3.org/2000/svg" 
 	x="0px" y="30px" width="50" height="50" viewBox="0,0,256,256">
 <g transform="translate(35.84,35.84) scale(0.72,0.72)"><g fill="#000000" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray="" stroke-dashoffset="0" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode: normal"><g transform="translate(11.264,54.17984) scale(5.12,5.12)"><path d="M17.791,46.836c0.711,-0.306 1.209,-1.013 1.209,-1.836v-5.4c0,-0.197 0.016,-0.402 0.041,-0.61c-0.014,0.004 -0.027,0.007 -0.041,0.01c0,0 -3,0 -3.6,0c-1.5,0 -2.8,-0.6 -3.4,-1.8c-0.7,-1.3 -1,-3.5 -2.8,-4.7c-0.3,-0.2 -0.1,-0.5 0.5,-0.5c0.6,0.1 1.9,0.9 2.7,2c0.9,1.1 1.8,2 3.4,2c2.487,0 3.82,-0.125 4.622,-0.555c0.934,-1.389 2.227,-2.445 3.578,-2.445v-0.025c-5.668,-0.182 -9.289,-2.066 -10.975,-4.975c-3.665,0.042 -6.856,0.405 -8.677,0.707c-0.058,-0.327 -0.108,-0.656 -0.151,-0.987c1.797,-0.296 4.843,-0.647 8.345,-0.714c-0.112,-0.276 -0.209,-0.559 -0.291,-0.849c-3.511,-0.178 -6.541,-0.039 -8.187,0.097c-0.02,-0.332 -0.047,-0.663 -0.051,-0.999c1.649,-0.135 4.597,-0.27 8.018,-0.111c-0.079,-0.5 -0.13,-1.011 -0.13,-1.543c0,-1.7 0.6,-3.5 1.7,-5c-0.5,-1.7 -1.2,-5.3 0.2,-6.6c2.7,0 4.6,1.3 5.5,2.1c1.699,-0.701 3.599,-1.101 5.699,-1.101c2.1,0 4,0.4 5.6,1.1c0.9,-0.8 2.8,-2.1 5.5,-2.1c1.5,1.4 0.7,5 0.2,6.6c1.1,1.5 1.7,3.2 1.6,5c0,0.484 -0.045,0.951 -0.11,1.409c3.499,-0.172 6.527,-0.034 8.204,0.102c-0.002,0.337 -0.033,0.666 -0.051,0.999c-1.671,-0.138 -4.775,-0.28 -8.359,-0.089c-0.089,0.336 -0.197,0.663 -0.325,0.98c3.546,0.046 6.665,0.389 8.548,0.689c-0.043,0.332 -0.093,0.661 -0.151,0.987c-1.912,-0.306 -5.171,-0.664 -8.879,-0.682c-1.665,2.878 -5.22,4.755 -10.777,4.974v0.031c2.6,0 5,3.9 5,6.6v5.4c0,0.823 0.498,1.53 1.209,1.836c9.161,-3.032 15.791,-11.672 15.791,-21.836c0,-12.682 -10.317,-23 -23,-23c-12.683,0 -23,10.318 -23,23c0,10.164 6.63,18.804 15.791,21.836z"></path></g></g></g>
@@ -27,8 +28,60 @@
 	<button class="btn" onclick="search()">Search</button>
 	-->
 	<div id="sqltree"></div>
-	
 	<script>
+		// FUNCTIONS
+		function removeComments(sql) 
+		{
+			return sql.replace(/\/\*[\s\S]*?\*\//g, '').replace(/ ,/g, ',');   // Komentarze wielolinijkowe /* ... */
+		}
+		
+		// SECTION 
+		function clearSearch()
+		{
+			document.getElementById('searchInput').value = "";
+			document.getElementById('searchInput').focus();
+			search();
+		};
+		
+		function onFieldSelected(name)
+		{
+			let n = name.split("|").filter(x => x.length>0);
+			while (n.length > 0)
+			{
+				name =""; 
+				n.forEach( 
+					function(idname)
+					{
+						let comments = document.querySelectorAll('input[data-ident="' + idname + '"]');
+						if (comments.length > 0) 
+						{
+							comments.forEach(function(e)
+							{
+								console.log(e);
+								e.checked = true ;
+								if (e.dataset.exname != undefined)
+								if (e.dataset.exname.length > 0)
+									name+='|'+e.dataset.exname
+							});
+						}
+					}
+				)
+				n = name.split("|").filter(x => x.length>0)
+			}
+		}
+
+		function checknOnCkick(e)
+		{
+			console.log(e);
+			if (e.srcElement.checked)
+			{
+				if (e.srcElement.dataset.name != undefined)
+					onFieldSelected(e.srcElement.dataset.name)
+				if (e.srcElement.dataset.exname != undefined)
+					onFieldSelected(e.srcElement.dataset.exname)
+			}
+		}
+		// NEXT
 		const fileInput = document.getElementById('file-input');
 		
 		var htmlDocument = document.documentElement;
@@ -37,35 +90,44 @@
 		var ctrlkey = false;
 		let fields =  undefined ;
 		let sw = true ;
+	
 		function handleKeyDown(event) {
 			if (event.key == "Alt")altkey = true;
-			if (event.key == "Control")
+			if (event.key == "Control") ctrlkey = true;
+			if (event.key == "-") if(!ctrlkey)
 			{
-				ctrlkey = true;
-				const sbtn = document.getElementById('sbtn');
-				sbtn.innerText ='Load (CSV)';
+				event.preventDefault();
+				addAll();
 			}
-			if (event.key == "-") if(!ctrlkey) addAll();
-			if (event.key == "+") if(!ctrlkey) removeAll();
+			if (event.key == "+") if(!ctrlkey)
+			{
+				event.preventDefault();
+				removeAll();
+			}
+			if (event.key == "Escape") 
+			{
+				event.preventDefault();
+				clearSearch();
+			}
 			if (event.key == "*") 
 			{
+				event.preventDefault();
 				if (sw)
 					hidenotchecked();
 				else
 					showallcheckboxees();
 				sw =  ! sw;
 			};
-			if (event.key == "#") uncheckall();
+			if (event.key == "#")
+			{
+				event.preventDefault();
+				uncheckall();
+			}
 		}
 
 		function handleKeyUp(event) {
 			if (event.key =="Alt")altkey = false;
-			if (event.key == "Control")
-			{
-				ctrlkey = false;
-				const sbtn = document.getElementById('sbtn');
-				sbtn.innerText ='Save (CSV)';
-			}
+			if (event.key == "Control") ctrlkey = false;
 		}
 
 		htmlDocument.addEventListener("keydown", handleKeyDown);
@@ -100,7 +162,6 @@
 			})
 		};
 		
-		
 		function showallcheckboxees()
 		{
 			let liel = document.querySelectorAll('li'); 
@@ -112,7 +173,6 @@
 		
 		function hidenotchecked()
 		{
-			console.log('hidenotchecked');
 			let liel = document.querySelectorAll('li'); 
 			liel.forEach(function(li) 
 			{
@@ -164,35 +224,20 @@
 				}
 			})
 		};
-		
-		/*function search() {
-			var searchText = document.getElementById('searchInput').value;
-			var elements = document.getElementsByTagName('*');
-			for (var i = 0; i < elements.length; i++) {
-				var element = elements[i];
-				if (getDirectInnerText(element).includes(searchText.toUpperCase()) && searchText.trim().length >0) 
-				{
-					element.classList.add('highlight');
-				} else 
-				{
-					element.classList.remove('highlight');
-				}
-			}
-		}*/
-		
-		function getDirectInnerText(element) 
-		{
-			let childNodes = element.childNodes;
-			result = '';
 
-			for (var i = 0; i < childNodes.length; i++) 
-			{
-				if(childNodes[i].nodeType == 3) 
-				{
-					result += childNodes[i].data;
-				}
+		function search() {
+			let searchText = document.getElementById('searchInput').value;
+			let elements = document.getElementsByTagName('li');
+			for (var i = 0; i < elements.length; i++) {
+				var element = elements[i];		
+				if (searchText.trim().length  ==0)
+				element.style.display="block"
+				else
+				if (element.innerText.includes(searchText.toUpperCase())) 
+				element.style.display="block"
+				else 
+				element.style.display="none";
 			}
-			return result;
 		}
 
 		function loadFile(file) {
@@ -201,7 +246,7 @@
 			{
 				let fileContent = event.target.result;
 				if (file.name.split('.').pop().toLowerCase() =='txt')
-					loadTree(fileContent);
+					loadTree(removeComments(fileContent));
 				else
 				if (file.name.split('.').pop().toLowerCase() =='csv')
 				{
@@ -210,22 +255,10 @@
 					else
 					loadFields(fileContent);
 				}
-				else
-				if (file.name.split('.').pop().toLowerCase() =='html')
-					loadSession(fileContent);
 			};
 			reader.readAsText(file);
 		}
 
-		function loadSession(fileContent)
-		{
-			let treeContainer = document.getElementById("sqltree");
-			treeContainer.innerHTML = fileContent;
-			treeContainer.addEventListener("click", toggleCollapse);
-			treeContainer.addEventListener("click", highlightSelected);
-			setCheckBoxHandlers();
-		}
-		
 		function loadTree(fileContent)
 		{
 			let json = tab2json(fileContent,{value:"name", subnodes:"children"});
@@ -256,16 +289,33 @@
 		  }
 		}
 
-		function poczNIECYFRY(tekst) {
-		const wynik = tekst.match(/\d/);
-		if (wynik) return tekst.substring(0, wynik.index)
-		return undefined;
+		function poczNIECYFRY(tekst) 
+		{
+			const wynik = tekst.match(/\d/);
+			if (wynik) return tekst.substring(0, wynik.index)
+			return undefined;
+		}
+		
+		function treeNodeClick(e)
+		{
+			let name = e.srcElement.parentElement.dataset.name;
+			if (name != undefined)
+			if (name.substring(0,1) != '-')
+			{
+				let cb = document.querySelector('input[data-line="' + name + '"]');
+				if (name.indexOf('.')>=0)
+				{
+					if (cb != undefined)
+						cb.checked = ! cb.checked ;
+					if (cb.checked)
+						onFieldSelected(name.split(".")[0]);
+				}
+			}
 		}
 
 		function createTree(json)
 		{
 			let treeContainer = document.getElementById("sqltree");
-			setObserver(treeContainer);
 			let db = undefined ;
 			
 			function createTreeView(data, parentElement, dbname, sub) 
@@ -279,9 +329,12 @@
 					var db ;
 					var checkbox = document.createElement("input");
 					checkbox.type = "checkbox";
+					checkbox.onclick= checknOnCkick;
 
+					node.dataset.name = data[i].name ;
 					node.classList.add("tree-node");
-					
+					node.addEventListener("click", treeNodeClick);
+
 					let dsub = sub ;
 					if (sub != undefined)
 					{
@@ -383,133 +436,8 @@
 			treeContainer.innerHTML="";
 			treeContainer.appendChild(createTreeView(json, treeContainer));
 			treeContainer.addEventListener("click", toggleCollapse);
-			treeContainer.addEventListener("click", highlightSelected);
-			setCheckBoxHandlers();
+			//treeContainer.addEventListener("click", highlightSelected);
 		}
-		
-		function setObserver(targetNode)
-		{
-			
-			const observer = new MutationObserver(function(mutationsList, observer) {
-				console.log('tick');
-				setCheckBoxHandlers();
-			});
-			const config = { childList: true, subtree: true };
-			observer.observe(targetNode, config);
-		}
-		
-		function setCheckBoxHandlers()
-		{
-			const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-			checkboxes.forEach(function(checkbox) 
-			{
-				checkbox.addEventListener('click', function() 
-				{
-					console.log(this.checked);
-					const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-					console.log(this.dataset.name);
-					if(this.dataset.name != undefined)
-					if(!ctrlkey)
-					{
-						if (this.dataset.ident != undefined)
-						if (this.checked)
-						{
-							console.log('check on with name = ' +this.dataset.name);
-							checkboxes.forEach(checkbox => {
-								if (checkbox.dataset.ident == this.dataset.name)
-								{
-									checkbox.checked = true; 
-									console.log('checked '+this.dataset.name);
-								}
-							});
-						}
-						else
-						{
-							checkboxes.forEach(checkbox => {
-								if (checkbox.dataset.ident == this.dataset.name)
-									checkbox.checked = false; 
-							});
-						} ;
-					}
-					
-					if(this.dataset.name != undefined)
-					{
-						if (this.checked)
-						{
-							//console.log(this.dataset.ident);
-							console.log('switch on with ident = ' +this.dataset.ident);
-							checkboxes.forEach(checkbox => {
-								if (checkbox.dataset.ident == this.dataset.name)
-								{
-									console.log(checkbox.dataset.ident);
-									checkbox.checked = true; 
-								}
-							});
-							checkboxes.forEach(checkbox => {
-								if ((checkbox.dataset.line).indexOf('/*'+this.dataset.name+'*/') >=0)
-								{
-									checkbox.checked = true; 
-									console.log('checked on '+checkbox.line);
-								};
-							});
-						};
-					}
-					
-					if(this.dataset.ident != undefined)
-					{
-						if (this.checked)
-						{
-							//console.log(this.dataset.ident);
-							console.log('switch on with ident = ' +this.dataset.ident);
-							checkboxes.forEach(checkbox => {
-								if (checkbox.dataset.ident == this.dataset.ident)
-								{
-									console.log(checkbox.dataset.ident);
-									checkbox.checked = true; 
-								}
-							});
-							checkboxes.forEach(checkbox => {
-								if (checkbox.dataset.exname != undefined)
-								if (('|'+checkbox.dataset.exname+'|').indexOf('|'+this.dataset.ident+'|') >=0)
-								{
-									checkbox.checked = true; 
-									console.log('checked on '+checkbox.dataset.exname);
-								}
-							});
-						};
-					}
-					
-					if (altkey)
-					{
-						const mstr = poczNIECYFRY(checkbox.dataset.line);
-						if (mstr != undefined)
-						{
-							checkboxes.forEach(checkbox => {
-								if (poczNIECYFRY(checkbox.dataset.line) == mstr)
-								checkbox.checked = true; 
-							});
-						}
-						checkboxes.forEach(checkbox => {
-							if (checkbox.dataset.ident == this.dataset.name)
-								checkbox.checked = true; 
-						});
-					} ;
-						
-					if (ctrlkey)
-					{
-						const mstr = poczNIECYFRY(checkbox.dataset.line);
-						if (mstr != undefined)
-						{
-							checkboxes.forEach(checkbox => {
-								if (poczNIECYFRY(checkbox.dataset.line) == mstr)
-								checkbox.checked = false; 
-							});
-						}
-					};
-				})
-			});
-		}
-		
 		
 		function pasted(element) {
 			console.log('element ',element);
@@ -522,6 +450,7 @@
 
 		function loadFields(fileContent)
 		{
+			console.log(fileContent);
 			selectFields(fileContent.replace(/\r/g,'').replace(/\r/g,'').replace(/\n/g," "));
 		}
 
@@ -574,11 +503,16 @@
 			
 			aliases.forEach(function(value) 
 			{
-				checkboxes.forEach(function(checkbox)
+				console.log(value);
+				onFieldSelected(value);
+				
+				/*checkboxes.forEach(function(checkbox)
 				{
+					onpppp
+					
 					if (checkbox.dataset.ident == value)
 						checkbox.checked = true; 
-				});
+				}); */
 			});
 			
 			showMessage(fn+','+n+','+fields.length);
@@ -589,9 +523,7 @@
 			let message = document.getElementById('message');
 			message.innerText = msg
 			message.style.display = 'block';
-
 			let time = 8000; 
-
 			setTimeout(function() {
 			message.style.display = 'none';
 			}, time);
@@ -599,6 +531,7 @@
 
 		function createSQL()
 		{
+			let nocom = ctrlkey ;
 			let e = document.getElementById('sqltree');
 			let sqltext ="" ;
 			
@@ -614,18 +547,36 @@
 						{
 							if (nodes[i].childNodes[0].checked === true )
 							{
-								sqltext += t+nodes[i].childNodes[1].innerText+"\r\n";
-								if (nodes[i].childNodes.length == 3)
+								if (nocom && nodes[i].childNodes[1].innerText.substring(0,1)=='-')
+								{
+									if (nodes[i].childNodes.length == 3)
 									if (nodes[i].childNodes[2].tagName == 'UL')
-										processUL(nodes[i].childNodes[2].childNodes, t+'\t');
+									processUL(nodes[i].childNodes[2].childNodes, t);
+								}
+								else
+								{
+									sqltext += t+nodes[i].childNodes[1].innerText+"\r\n";
+									if (nodes[i].childNodes.length == 3)
+									if (nodes[i].childNodes[2].tagName == 'UL')
+									processUL(nodes[i].childNodes[2].childNodes, t+'\t');
+								}
 							}
 						}
 						else
 						{
-							sqltext += t+nodes[i].childNodes[0].innerText+"\r\n";
-							if (nodes[i].childNodes.length == 2)
+							if (nocom && nodes[i].childNodes[0].innerText.substring(0,1)=='-')
+							{
+								if (nodes[i].childNodes.length == 2)
 								if (nodes[i].childNodes[1].tagName == 'UL')
-									processUL(nodes[i].childNodes[1].childNodes, t+'\t');
+								processUL(nodes[i].childNodes[1].childNodes, t);
+							}
+							else
+							{
+								sqltext += t+nodes[i].childNodes[0].innerText+"\r\n";
+								if (nodes[i].childNodes.length == 2)
+								if (nodes[i].childNodes[1].tagName == 'UL')
+								processUL(nodes[i].childNodes[1].childNodes, t+'\t');
+							}
 						}
 					}
 					else
@@ -654,35 +605,30 @@
 			checkboxes.forEach(checkbox => { checkbox.checked = false});
 			const lines = text.replace(/\r/g,'').split("\n");
 			let c = 0;
-			let fc = 0;
-			let ff = 0;
+			let lc = 0;
 			lines.forEach(function(line){
-				if (line.length>0)
+				line = line.trim();
+				lc++;
+				if (line.length>0 && line.indexOf('.') > 0) 
 				{
-					if (line.indexOf('.') > 0) fc++;
-					let e = document.querySelector('input[data-line="' + line.trim() + '"]');
+					let e = document.querySelector('input[data-line="' + line + '"]');
 					if (e)
 					{
-						if (line.indexOf('.') > 0) ff++;
+						onFieldSelected(line.split(".")[0]);
 						e.checked = true ;
 						c++;
 					}
 				}
 			});
-			showMessage(c+','+fc+','+ff);
+			showMessage(lc+','+c);
 		}
-
+		
 		function saveCSV()
 		{
-			if (ctrlkey)
-			{
-				openInputFields() 
-				return ;
-			}
 			const checkboxes = document.querySelectorAll('input[type="checkbox"]');
 			let text  = "input#\r\n"; 
 			let c = 0;
-			let fc = 0;			
+			let fc = 0;
 			checkboxes.forEach(checkbox => {
 				if (checkbox.checked)
 				if (checkbox.dataset!= undefined)
@@ -690,8 +636,12 @@
 				{
 					c++;
 					const line = checkbox.dataset.line;
-					if (line.indexOf('.') > 0) fc++;
-					text+= line+"\r\n";
+					if (line.substring(0,1) !="-")
+					if (line.indexOf('.') > 0) 
+					{ 
+						fc++;
+						text+= line+"\r\n";
+					}
 				}
 			});
 			saveToCSV(text);
@@ -708,51 +658,6 @@
 					a.click();
 				}
 			}
-		}
-		
-		function saveState()
-		{
-			function saveInitState()
-			{
-				const element = document.getElementById("sqltree");
-				if (element) 
-				{
-					const inputElements = element.querySelectorAll('input');
-					inputElements.forEach((inputElement) => 
-					{
-						let str = '<input type="checkbox"';
-						if (inputElement.id != undefined ) str +=' id="'+inputElement.id+'"';
-						if (inputElement.checked ) str +=' checked="true"';
-						
-						if (inputElement.dataset.db != undefined)
-							str+=' data-db="'+inputElement.dataset.db+'"';
-						if (inputElement.dataset.name != undefined)
-							str+=' data-name="'+inputElement.dataset.name+'"';
-						if (inputElement.dataset.field != undefined)
-							str+=' data-field="'+inputElement.dataset.field+'"';
-						if (inputElement.dataset.ident != undefined)
-							str+=' data-ident="'+inputElement.dataset.ident+'"';
-						if (inputElement.dataset.line != undefined)
-							str+=' data-line="'+inputElement.dataset.line+'"';
-						str+='>' ;
-						inputElement.outerHTML = str;
-					});
-					saveToFile(element.innerHTML);
-				}
-
-				function saveToFile(text) 
-				{
-					let file = new Blob([text], { type: 'text/plain' });
-					{
-						let a = document.createElement('a');
-						a.href = URL.createObjectURL(file);
-						a.download = 'state.html';
-						a.click();
-					}
-				}
-			}
-			saveInitState();
-			setCheckBoxHandlers();
 		}
 
 		function openInputFields() {
@@ -771,10 +676,6 @@
 			loadCSV(textInput)
 			else
 			loadFields(textInput);
-			
-			ctrlkey = false;
-			const sbtn = document.getElementById('sbtn');
-			sbtn.innerText ='Save (CSV)';
 			closeModal();
 		}
 	</script>
