@@ -15,7 +15,7 @@ The template file should have the txt extension and should be prepared according
 
 ## How to save the result sql file
 
-Click the button "SAVE (CSV)". The resulting file will be downloaded.#
+Click the button "SAVE (CSV)". The resulting file will be downloaded. 
 If you click the button and hold down the Ctrl key, the resulting file will not contain a comment lines (that is, a line that starts with the string "--")
 
 ## How to save project
