@@ -3,7 +3,7 @@ body
 	padding:1vw;
 	font-family: Consolas, "Courier New", monospace;
 	font-weight: normal;
-	font-size: 20px;
+	font-size: 18px;
 	line-height: 25px;
 	letter-spacing: 0px;
 }
@@ -132,3 +132,5 @@ textarea {
 	line-height: 25px;
 	letter-spacing: 0px;
 }
+
+.w0 { width:0px}
