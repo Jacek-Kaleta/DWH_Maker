@@ -9,6 +9,7 @@
 <body>
 	<script src="tabjs.js"></script>
 	<div id="message">No message</div>
+	<div class="top">
 	<label for="file-input" class="custom-file-upload">Load Definition (TXT) / Fields (CSV/SQL)</label> 
 	<input class="inp" id="file-input" type="file"/>
 	<button class="btn" onclick="createSQL()">Create (SQL)</button>
@@ -20,11 +21,12 @@
 	<a href="https://github.com/Jacek-Kaleta/sqlmaker" target="_blank">
 	GitHUB
 	</a>
+	</div>
 	<!--
 	<input class="inp" type="text" id="searchInput" placeholder="Text to search" size="20">
 	<button class="btn" onclick="search()">Search</button>
 	-->
-	<div id="sqltree"></div>
+	<div class="next" id="sqltree"></div>
 	<script>
 		// FUNCTIONS
 		function removeComments(sql) 
@@ -54,7 +56,6 @@
 						{
 							comments.forEach(function(e)
 							{
-								console.log(e);
 								e.checked = true ;
 								if (e.dataset.exname != undefined)
 								if (e.dataset.exname.length > 0)
@@ -69,7 +70,6 @@
 
 		function checknOnCkick(e)
 		{
-			console.log(e);
 			if (e.srcElement.checked)
 			{
 				if (e.srcElement.dataset.name != undefined)
@@ -83,13 +83,14 @@
 		
 		var htmlDocument = document.documentElement;
 
-		var altkey = false;
-		var ctrlkey = false;
+		let altkey = false;
+		let ctrlkey = false;
 		let fields =  undefined ;
 		let sw = true ;
 	
 		function handleKeyDown(event) {
-			if (event.key == "Alt")altkey = true;
+			console.log('down '+event.key);
+			if (event.key == "Alt") altkey = true;
 			if (event.key == "Control") ctrlkey = true;
 			if (event.key == "-") if(!ctrlkey)
 			{
@@ -123,8 +124,9 @@
 		}
 
 		function handleKeyUp(event) {
-			if (event.key =="Alt")altkey = false;
-			if (event.key == "Control") ctrlkey = false;
+			console.log('up '+event.key);
+			if (event.key == "Alt" ) altkey = false;
+			if (event.key == "Control" ) ctrlkey = false;
 		}
 
 		htmlDocument.addEventListener("keydown", handleKeyDown);
@@ -192,9 +194,8 @@
 			});
 		}
 		
-		function removeAll()
+		function removeFromElement(elem)
 		{
-			const elem = document.querySelectorAll('span');
 			elem.forEach(function(e) 
 			{
 				if (e.classList.contains("tree-node")) 
@@ -205,11 +206,15 @@
 					}
 				}
 			})
+		}
+		
+		function removeAll()
+		{
+			removeFromElement(document.querySelectorAll('span'));
 		};
 		
-		function addAll()
+		function addToElement(elem)
 		{
-			const elem = document.querySelectorAll('span');
 			elem.forEach(function(e) 
 			{
 				if (e.classList.contains("tree-node")) 
@@ -220,6 +225,11 @@
 					}
 				}
 			})
+		} ;
+		
+		function addAll()
+		{
+			addToElement(document.querySelectorAll('span'));
 		};
 
 		function search() {
@@ -233,8 +243,6 @@
 				map(x=> x.trim().toUpperCase()).
 				filter(x => x.length>0).
 				filter(x => x != ",");
-				
-			console.log(searchArray);
 
 			let elements = document.getElementsByTagName('li');
 			
@@ -286,7 +294,8 @@
 				let sw = 0;
 				let outtext="#input";
 				
-				const regex = /^(\t{1,2})[a-zA-Z][a-zA-Z0-9_]*\.[a-zA-Z][a-zA-Z0-9_]*,$/;
+				//const regex = /^(\t{1,2})[a-zA-Z][a-zA-Z0-9_]*\.[a-zA-Z][a-zA-Z0-9_]*,$/;
+				const regex = /^(\t{1,2})[a-zA-Z][a-zA-Z0-9_]*\.[a-zA-Z][a-zA-Z0-9_]*( [a-zA-Z][a-zA-Z0-9_]*)?,/;
 				const lines = text.replace(/\r/g,'').split("\n");
 				lines.forEach(
 					function(line)
@@ -322,13 +331,24 @@
 		function toggleCollapse(event) {
 			var target = event.target;
 
+			if (ctrlkey)
+			{
+				if (target.parentNode.classList.contains("tree-node")) 
+				{
+					let childUl = target.parentNode.nextElementSibling;
+					if (childUl) 
+					if (childUl.classList.contains("collapsed"))
+					removeFromElement(target.parentNode.parentElement.querySelectorAll('li span'));
+					else
+					addToElement(target.parentNode.parentElement.querySelectorAll('li span'));
+				} 
+			}
+			else
 			if (target.parentNode.classList.contains("tree-node")) 
 			{
 				var childUl = target.parentNode.nextElementSibling;
-				if (childUl) {
-					childUl.classList.toggle("collapsed");
-					
-				}
+				if (childUl) 
+				childUl.classList.toggle("collapsed");
 			}
 		}
 
@@ -390,20 +410,24 @@
 					node.addEventListener("click", treeNodeClick);
 
 					let dsub = sub ;
+					let dataname = data[i].name ;
 					if (sub != undefined)
 					{
-						node.innerHTML = joinSpan(data[i].name);
+						node.innerHTML = joinSpan(dataname);
 						li.appendChild(node);
 					} else
-					if (data[i].name[0]!='!')
+					if (dataname[0]!='!')
 					{
-						node.innerHTML = joinSpan(data[i].name);
-						if (data[i].name.substring(0,3)=='-- ')
+						let dataname = data[i].name ;
+						node.innerHTML = joinSpan(dataname);
+						if (dataname.substring(0,1)=='@') 
+							dataname = dataname.substring(1);
+						if (dataname.substring(0,3)=='-- ')
 						{
-							let name = data[i].name.substring(3).split(",")[0];
-							if (data[i].name.substring(3).split(",")[1] != undefined)
+							let name = dataname.substring(3).split(",")[0];
+							if (dataname.substring(3).split(",")[1] != undefined)
 							{
-								db = data[i].name.substring(3).split(",")[1].trim();
+								db = dataname.substring(3).split(",")[1].trim();
 								if (db.indexOf('.')>=0)
 								checkbox.dataset.db = db;
 								else
@@ -413,27 +437,27 @@
 							checkbox.dataset.ident = name;
 						} else
 						{
-							let name = data[i].name.split(".")[0];
+							let name = dataname.split(".")[0];
 							//checkbox.id= name ;
 							checkbox.dataset.name = name;
 							if (data[i].name.split(".").length == 2)
-								checkbox.dataset.field = dbname+"."+data[i].name.split(".")[1].replace(",","");
+								checkbox.dataset.field = dbname+"."+dataname.split(".")[1].replace(",","");
 						}
-						checkbox.dataset.line = data[i].name ;
+						checkbox.dataset.line = dataname ;
 						li.appendChild(checkbox);
 						li.appendChild(node);
 					} ;
-					
-					if (data[i].name[0]=='!')
+
+					if (dataname[0]=='!')
 					{
-						node.innerHTML = joinSpan(data[i].name.substring(1));
+						node.innerHTML = joinSpan(dataname.substring(1));
 						li.appendChild(node);
 					}
 					else
-					if (data[i].name[0]=='@')
+					if (dataname[0]=='@')
 					{
 						dsub = 0
-						node.innerHTML = joinSpan(data[i].name.substring(1));
+						node.innerHTML = joinSpan(dataname.substring(1));
 						li.appendChild(node);
 					}
 					ul.appendChild(li);
@@ -495,7 +519,6 @@
 		
 		function pasted(element) 
 		{
-			console.log('element ',element);
 			setTimeout(function(){
 			if (element.value.length >0)
 				selectFields(element.value);
@@ -505,7 +528,6 @@
 
 		function loadFields(fileContent)
 		{
-			console.log(fileContent);
 			selectFields(fileContent.replace(/\r/g,'').replace(/\r/g,'').replace(/\n/g," "));
 		}
 
@@ -557,8 +579,7 @@
 			} fields = [];
 			
 			aliases.forEach(function(value) 
-			{
-				console.log(value);
+			{		
 				onFieldSelected(value);
 			});
 			
@@ -581,6 +602,7 @@
 			let nocom = ctrlkey ;
 			let e = document.getElementById('sqltree');
 			let sqltext ="" ;
+			let sqlarray = [] ;
 			
 			processUL(e.querySelector('UL').childNodes,'');
 			
@@ -603,6 +625,11 @@
 								else
 								{
 									sqltext += t+nodes[i].childNodes[1].innerText+"\r\n";
+									sqlarray.push(
+										{
+											text:(t+nodes[i].childNodes[1].innerText), 
+											position:nvl(nodes[i].childNodes[0].dataset.lineno)
+										});
 									if (nodes[i].childNodes.length == 3)
 									if (nodes[i].childNodes[2].tagName == 'UL')
 									processUL(nodes[i].childNodes[2].childNodes, t+'\t');
@@ -620,6 +647,11 @@
 							else
 							{
 								sqltext += t+nodes[i].childNodes[0].innerText+"\r\n";
+								sqlarray.push(
+									{
+										text:(t+nodes[i].childNodes[0].innerText), 
+										position:nvl(nodes[i].childNodes[0].dataset.lineno)
+									});
 								if (nodes[i].childNodes.length == 2)
 								if (nodes[i].childNodes[1].tagName == 'UL')
 								processUL(nodes[i].childNodes[1].childNodes, t+'\t');
@@ -627,13 +659,75 @@
 						}
 					}
 					else
+					{
+						sqlarray.push(
+							{
+								text:(t+nodes[i].childNodes[0].innerText), 
+								position:nvl(nodes[i].childNodes[0].dataset.lineno)
+							});
 						sqltext += t+nodes[i].childNodes[0].innerText+"\r\n";
+					}
 				}
 			}
 
-			saveSQLToFile(sqltext);
-			return sqltext ;
+			//saveSQLToFile(sqltext);
+			if (nocom)
+				return saveSQLToFile(tableToSQL(sortSQL(sqlarray)));
+			return saveSQLToFile(tableToSQL(sqlarray));
 			
+			function compareNum(a,b)
+			{
+				if (a === 0 && b !== 0) return 1; 
+				if (a !== 0 && b === 0) return -1; 
+				return a - b; 
+			}
+			
+			function sortObjectsInRange(arr, fromIndex, toIndex, key) 
+			{
+				if (fromIndex < 0 || toIndex >= arr.length || fromIndex > toIndex) 
+					return arr;
+				const rangeToSort = arr.slice(fromIndex, toIndex + 1);
+				const sorted = rangeToSort.sort((a, b) => compareNum(a[key],b[key]));
+				arr.splice(fromIndex, toIndex - fromIndex + 1, ...sorted);
+				return arr;
+			}
+
+
+			function nvl(x)
+			{
+				return x == undefined ? 0: parseInt(x);
+			}
+
+			function firstNotEqual(arr, key, value)
+			{
+				for(let i = 0; i < arr.length; i++) 
+					if (arr[i][key] !== value) 
+						return i; 
+				return arr.length;
+			}
+
+			function lastNotEqual(arr, key, value)
+			{
+				for (let i = arr.length - 1; i >= 0; i--)
+					if (arr[i][key] !== value)
+						return i; 
+				return -1; 
+			}
+			
+			function sortSQL(table)
+			{
+				const indexFrom = firstNotEqual(table,'position',0);
+				const indexTo = lastNotEqual(table,'position',0);
+					if (indexFrom <= indexTo)
+					return sortObjectsInRange(table, indexFrom, indexTo, 'position');
+				return table;
+			}
+			
+			function tableToSQL(table)
+			{
+				return table.map(x => x.text).join('\r\n');
+			}
+
 			function saveSQLToFile(text) 
 			{
 				let file = new Blob([text], { type: 'text/plain' });
@@ -663,6 +757,7 @@
 					{
 						onFieldSelected(line.split(".")[0]);
 						e.checked = true ;
+						e.dataset['lineno']=lc ;
 						c++;
 					}
 				}
