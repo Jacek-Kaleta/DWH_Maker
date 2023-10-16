@@ -41,7 +41,52 @@
 			document.getElementById('searchInput').focus();
 			search();
 		};
-		
+
+		let x,y ;
+		function createExportTable()
+		{
+			const checkboxes = 
+			Array.from(document.querySelectorAll('input[type="checkbox"]'));
+			x= checkboxes;
+			console.log(checkboxes);
+			y=checkboxes.
+				map(element => element.dataset.line).
+				filter(element => element.substring(0,3)=='-- ').
+				map(element => element.substring(3)).
+				filter(element => element.indexOf(',')>0).
+				filter(element => element.indexOf('.')>0).
+				map( function(element, index, table) 
+				{
+					const e = element.split(',').map(e => e.trim());
+					return '\t\t\SELECT '+(index+1)+',\''+e[1]+'\',\''+e[0]+'\' FROM DUAL '+ (index < table.length -1 ? 'UNION ALL':'');
+				}
+				)
+			const text = 'WITH JOINS(LP, TABLE_NAME, ALIAS) AS\r\n'+
+			'\t(\r\n'+
+			y.join('\r\n')+'\r\n'+
+			'\t)\r\n'+
+			'SELECT TEXT\r\n'+
+			'FROM\r\n'+
+			'(\r\n'+
+			'\tSELECT 0 LP, \'!SELECT\' TEXT FROM DUAL UNION ALL\r\n'+
+			'\tSELECT 2*LP+1 LP, CHR(9)||\'-- \'||ALIAS||\', \'||TABLE_NAME TEXT FROM JOINS UNION ALL\r\n'+
+			'\tSELECT\r\n'+
+			'\t\t2*LP+2,\r\n'+
+			'\t\tCHR(9)||CHR(9)||JOINS.ALIAS||\'.\'||COLUMN_NAME||\',\'\r\n'+
+			'\tFROM\r\n'+
+			'\t\tJOINS\r\n'+
+			'\t\tINNER JOIN\r\n'+
+			'\t\tALL_TAB_COLUMNS\r\n'+
+			'\t\tON\r\n'+
+			'\t\t\tJOINS.TABLE_NAME = ALL_TAB_COLUMNS.OWNER||\'.\'||ALL_TAB_COLUMNS.TABLE_NAME\r\n'+
+			')\r\n'+
+			'ORDER BY\r\n'+
+			'\tLP,\r\n'+
+			'\tTEXT;'
+			
+			console.log(text);
+			saveSQLToFile(text);
+		}
 		function onFieldSelected(name)
 		{
 			let n = name.split("|").filter(x => x.length>0);
@@ -727,19 +772,19 @@
 			{
 				return table.map(x => x.text).join('\r\n');
 			}
-
-			function saveSQLToFile(text) 
-			{
-				let file = new Blob([text], { type: 'text/plain' });
-				{
-					let a = document.createElement('a');
-					a.href = URL.createObjectURL(file);
-					a.download = 'query.sql';
-					a.click();
-				}
-			}
 		}
 
+
+		function saveSQLToFile(text) 
+		{
+			let file = new Blob([text], { type: 'text/plain' });
+			{
+				let a = document.createElement('a');
+				a.href = URL.createObjectURL(file);
+				a.download = 'query.sql';
+				a.click();
+			}
+		}
 		function loadCSV(text)
 		{
 			const checkboxes = document.querySelectorAll('input[type="checkbox"]');
