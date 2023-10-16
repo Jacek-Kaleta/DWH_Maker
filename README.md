@@ -21,3 +21,14 @@ If you click the button and hold down the Ctrl key, the resulting file will not 
 ## How to save project
 
 Click the "SAVE (CSV)" button. All selected fields will be saved to a csv file. The first line of the output file will contain the text "input#".
+
+## Keyboard shorcuts
+
+| Key | Action                    |
+|-----|---------------------------|
+|  \#  | clear checkboxes          |
+|  \*  | hide/show selected fields |
+|  \+  | expand branches           |
+|  Ctrl \+  | expand branches and subbranches    |
+|  \-  | collapse the branches     |
+|  Ctrl \-  | collapse the branches  and subbranches   |
