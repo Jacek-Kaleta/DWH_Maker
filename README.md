@@ -5,7 +5,7 @@ Run from https://sqlmaker.pages.dev/sqlmaker
 You can:
 - load the script definition from the ".txt" file.
 - load list of fields from ".csv" file, from ".sql"  or paste them from text.
-- save/load list of fields to/form "csv" file
+- save / load list of fields to / from "csv" file
 
 ## How to load the script definition file
 
