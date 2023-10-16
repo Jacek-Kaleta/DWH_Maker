@@ -25,9 +25,10 @@ Click the "SAVE (CSV)" button. All selected fields will be saved to a csv file. 
 
 | Key | Action                    |
 |-----|---------------------------|
-|  \#  | clear checkboxes          |
-|  \*  | hide/show selected fields |
-|  \+  | expand branches           |
-|  Ctrl \+  | expand branches and subbranches    |
-|  \-  | collapse the branches     |
-|  Ctrl \-  | collapse the branches  and subbranches   |
+| Esc | Clear the search field |
+|  \#  | Clear checkboxes          |
+|  \*  | Hide/show selected fields |
+|  \+  | Expand branches           |
+|  Ctrl \+  | Expand branches and subbranches    |
+|  \-  | Collapse the branches     |
+|  Ctrl \-  | Collapse the branches  and subbranches   |
