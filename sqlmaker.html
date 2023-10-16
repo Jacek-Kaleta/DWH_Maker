@@ -571,12 +571,12 @@
 			}, 0);
 		}
 
-		function loadFields(fileContent)
+		function loadFields(fileContent, clear)
 		{
-			selectFields(fileContent.replace(/\r/g,'').replace(/\r/g,'').replace(/\n/g," "));
+			selectFields(fileContent.replace(/\r/g,'').replace(/\r/g,'').replace(/\n/g," "),clear);
 		}
 
-		function selectFields(value)
+		function selectFields(value, clear)
 		{
 			//const paste = document.getElementById('fields');
 			//paste.value ="";
@@ -586,6 +586,7 @@
 
 			const checkboxes = document.querySelectorAll('input[type="checkbox"]');
 			let aliases =[]; 
+			if (clear == 1)
 			checkboxes.forEach(function(checkbox) 
 			{
 				checkbox.checked = false ;
@@ -785,9 +786,10 @@
 				a.click();
 			}
 		}
-		function loadCSV(text)
+		function loadCSV(text, clear)
 		{
 			const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+			if (clear ==1)
 			checkboxes.forEach(checkbox => { checkbox.checked = false});
 			const lines = text.replace(/\r/g,'').split("\n");
 			let c = 0;
@@ -857,19 +859,20 @@
 			modal.style.display = 'none';
 		}
 
-		function saveText() {
+		function saveText(clear) {
 			let textInput = document.getElementById('textInput').value;
 			if (textInput.indexOf('input#')==0)
-			loadCSV(textInput)
+			loadCSV(textInput,clear)
 			else
-			loadFields(textInput);
+			loadFields(textInput, clear);
 			closeModal();
 		}
 	</script>
 	<div id="mModal">
 		<div id="mContent">
 		<textarea id="textInput"></textarea><br>
-		<button class="btn" onclick="saveText()">OK</button>
+		<button class="btn" onclick="saveText(1)">CLEAR AND SELECT</button>
+		<button class="btn" onclick="saveText(0)">SELECT</button>
 		<button class="btn" onclick="closeModal()">Cancel</button>
 		</div>
 	</div>
