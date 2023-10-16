@@ -581,8 +581,9 @@
 			//const paste = document.getElementById('fields');
 			//paste.value ="";
 			fields = value.replace(/\t/g, '.')
-			fields = '#'+fields.replace(/ /g, '#')+'#';
-			let fn = fields.length ;
+			fields = fields.split(' ').filter(element => element.length>0);
+			
+			console.log(fields);
 
 			const checkboxes = document.querySelectorAll('input[type="checkbox"]');
 			let aliases =[]; 
@@ -597,10 +598,13 @@
 			{
 				if (checkbox.dataset.field != undefined)
 				{
-					if (fields.indexOf('#'+checkbox.dataset.field+'#')>=0)
+					let lc = fields.indexOf(checkbox.dataset.field)
+					if (lc >= 0)
 					{
-						fields = fields.replace('#'+checkbox.dataset.field+'#','#');
+						fields[lc]='';
 						checkbox.checked = true ;
+						lc++;
+						checkbox.dataset['lineno']=lc ;
 						if (found==undefined) found =checkbox.dataset.field;
 						else found+="\r\n"+checkbox.dataset.field;
 						n++;
@@ -615,21 +619,20 @@
 			console.log('Found:');
 			console.log(found);
 			console.log('');
-			fields= fields.replace(/#/g,"\r\n");
-			fields = fields.replace(/\r\n+$/, '');
+			fields= fields.filter(element => element.length>0);
 			if (fields.length >0)
 			{
 				console.log('Not Found:');
 				console.log('');
-				fields= fields.split("\r\n");
-			} fields = [];
+				console.log(fields.join('\r\n'));
+			};
 			
 			aliases.forEach(function(value) 
-			{		
+			{
 				onFieldSelected(value);
 			});
 			
-			showMessage(fn+','+n+','+fields.length);
+			showMessage(n+','+fields.length);
 		}
 
 		function showMessage(msg)
